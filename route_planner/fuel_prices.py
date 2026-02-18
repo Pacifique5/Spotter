@@ -1,19 +1,79 @@
-# Fuel prices data (price per gallon in USD)
-# Format: {state_code: price_per_gallon}
-FUEL_PRICES = {
-    'AL': 2.89, 'AK': 3.45, 'AZ': 3.12, 'AR': 2.78, 'CA': 4.65,
-    'CO': 3.05, 'CT': 3.28, 'DE': 3.15, 'FL': 3.02, 'GA': 2.92,
-    'HI': 4.58, 'ID': 3.35, 'IL': 3.42, 'IN': 3.18, 'IA': 2.95,
-    'KS': 2.88, 'KY': 2.95, 'LA': 2.75, 'ME': 3.22, 'MD': 3.25,
-    'MA': 3.35, 'MI': 3.28, 'MN': 3.05, 'MS': 2.72, 'MO': 2.85,
-    'MT': 3.18, 'NE': 2.98, 'NV': 3.85, 'NH': 3.18, 'NJ': 3.38,
-    'NM': 2.95, 'NY': 3.52, 'NC': 3.05, 'ND': 3.12, 'OH': 3.15,
-    'OK': 2.82, 'OR': 3.75, 'PA': 3.58, 'RI': 3.32, 'SC': 2.88,
-    'SD': 3.08, 'TN': 2.85, 'TX': 2.68, 'UT': 3.28, 'VT': 3.35,
-    'VA': 3.08, 'WA': 3.95, 'WV': 3.12, 'WI': 3.05, 'WY': 3.15,
-    'DC': 3.42
-}
+import csv
+import os
+from django.conf import settings
+
+# Cache for fuel prices loaded from CSV
+_FUEL_PRICES_CACHE = None
+_TRUCK_STOPS_CACHE = None
+
+
+def _load_fuel_data():
+    """Load fuel price data from CSV file."""
+    global _FUEL_PRICES_CACHE, _TRUCK_STOPS_CACHE
+    
+    if _FUEL_PRICES_CACHE is not None:
+        return _FUEL_PRICES_CACHE, _TRUCK_STOPS_CACHE
+    
+    # Path to CSV file
+    csv_path = os.path.join(settings.BASE_DIR, 'fuel-prices-for-be-assessment.csv')
+    
+    truck_stops = []
+    state_prices = {}
+    
+    try:
+        with open(csv_path, 'r', encoding='utf-8') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                try:
+                    state = row['State'].strip()
+                    price = float(row['Retail Price'])
+                    
+                    # Store truck stop data
+                    truck_stops.append({
+                        'id': row['OPIS Truckstop ID'],
+                        'name': row['Truckstop Name'],
+                        'address': row['Address'],
+                        'city': row['City'],
+                        'state': state,
+                        'price': price
+                    })
+                    
+                    # Calculate average price per state
+                    if state not in state_prices:
+                        state_prices[state] = []
+                    state_prices[state].append(price)
+                    
+                except (ValueError, KeyError) as e:
+                    continue
+        
+        # Calculate average prices per state
+        _FUEL_PRICES_CACHE = {
+            state: round(sum(prices) / len(prices), 3)
+            for state, prices in state_prices.items()
+        }
+        _TRUCK_STOPS_CACHE = truck_stops
+        
+    except FileNotFoundError:
+        # Fallback to default prices if CSV not found
+        _FUEL_PRICES_CACHE = {'US': 3.00}
+        _TRUCK_STOPS_CACHE = []
+    
+    return _FUEL_PRICES_CACHE, _TRUCK_STOPS_CACHE
+
 
 def get_fuel_price(state_code):
-    """Get fuel price for a given state code."""
-    return FUEL_PRICES.get(state_code.upper(), 3.00)
+    """Get average fuel price for a given state code from CSV data."""
+    fuel_prices, _ = _load_fuel_data()
+    return fuel_prices.get(state_code.upper(), 3.00)
+
+
+def get_truck_stops_by_state(state_code):
+    """Get all truck stops for a given state."""
+    _, truck_stops = _load_fuel_data()
+    return [stop for stop in truck_stops if stop['state'] == state_code.upper()]
+
+
+def get_all_truck_stops():
+    """Get all truck stops from CSV data."""
+    _, truck_stops = _load_fuel_data()
+    return truck_stops
