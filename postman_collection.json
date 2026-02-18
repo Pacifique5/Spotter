@@ -1,0 +1,84 @@
+{
+  "info": {
+    "name": "Fuel Route Optimizer API",
+    "description": "API for calculating optimal fuel stops along a route",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Calculate Route with Fuel Stops",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"start\": \"New York, NY\",\n  \"finish\": \"Los Angeles, CA\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8000/api/route/",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8000",
+          "path": ["api", "route", ""]
+        },
+        "description": "Calculate optimal route with fuel stops between two US locations"
+      },
+      "response": []
+    },
+    {
+      "name": "Short Route (No Stops)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"start\": \"Boston, MA\",\n  \"finish\": \"New York, NY\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8000/api/route/",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8000",
+          "path": ["api", "route", ""]
+        },
+        "description": "Short route that doesn't require fuel stops"
+      },
+      "response": []
+    },
+    {
+      "name": "Cross-Country Route",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"start\": \"Miami, FL\",\n  \"finish\": \"Seattle, WA\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8000/api/route/",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8000",
+          "path": ["api", "route", ""]
+        },
+        "description": "Long cross-country route with multiple fuel stops"
+      },
+      "response": []
+    }
+  ]
+}
