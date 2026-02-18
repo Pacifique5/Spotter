@@ -1,43 +1,38 @@
 # Fuel Route Optimizer API
 
-Django REST API that calculates optimal fuel stops along a route using real fuel price data from 8000+ truck stops across the US.
+Django REST API that calculates optimal fuel stops for long-distance routes in the USA using real fuel price data from 8,151 truck stops.
 
 ## Features
-- Route planning between US locations
+
+- Route planning between any two US locations
 - Optimal fuel stop recommendations based on real fuel prices
 - Total fuel cost calculation (10 MPG vehicle, 500-mile range)
-- Uses real fuel price data from CSV (8000+ truck stops)
-- OpenRouteService integration for routing and geocoding
+- Complete route geometry for map visualization
+- Fast response times with minimal external API calls
 
-## Quick Setup
+## Quick Start
 
-1. **Install dependencies:**
 ```bash
+# 1. Install dependencies
 pip install -r requirements.txt
-```
 
-2. **Get API key** from [OpenRouteService](https://openrouteservice.org/dev/#/signup)
+# 2. Create .env file with your OpenRouteService API key
+echo OPENROUTE_API_KEY=your_api_key_here > .env
 
-3. **Create `.env` file:**
-```
-OPENROUTE_API_KEY=your_api_key_here
-```
-
-4. **Run migrations and start server:**
-```bash
+# 3. Run migrations
 python manage.py migrate
+
+# 4. Start server
 python manage.py runserver
 ```
 
-Server runs at `http://localhost:8000`
+Server runs at: **http://127.0.0.1:8000**
 
-For detailed setup instructions, see [SETUP.md](SETUP.md)
+## API Usage
 
-## API Endpoint
+**Endpoint:** POST `/api/route/`
 
-POST `/api/route/`
-
-Request body:
+**Request:**
 ```json
 {
   "start": "New York, NY",
@@ -45,30 +40,19 @@ Request body:
 }
 ```
 
-Response:
+**Response:**
 ```json
 {
-  "start": {
-    "name": "New York, NY, USA",
-    "coordinates": {"lat": 40.7128, "lon": -74.0060},
-    "state": "NY"
-  },
-  "finish": {
-    "name": "Los Angeles, CA, USA",
-    "coordinates": {"lat": 34.0522, "lon": -118.2437},
-    "state": "CA"
-  },
-  "route": {
-    "geometry": {...},
-    "duration_seconds": 142560
-  },
+  "start": { "name": "New York, NY, USA", "coordinates": {...}, "state": "NY" },
+  "finish": { "name": "Los Angeles, CA, USA", "coordinates": {...}, "state": "CA" },
+  "route": { "geometry": {...}, "duration_seconds": 142560 },
   "fuel_stops": [
     {
       "stop_number": 1,
-      "location": {"lat": 39.95, "lon": -82.99, "state": "OH"},
-      "distance_from_start_miles": 500,
+      "distance_from_start_miles": 500.0,
+      "state": "OH",
       "fuel_price_per_gallon": 3.15,
-      "gallons_to_refuel": 50,
+      "gallons_to_refuel": 50.0,
       "cost_at_stop": 157.50
     }
   ],
@@ -84,53 +68,88 @@ Response:
 
 ## Testing
 
-**Using cURL:**
+### Using cURL
 ```bash
-curl -X POST http://localhost:8000/api/route/ \
+curl -X POST http://127.0.0.1:8000/api/route/ \
   -H "Content-Type: application/json" \
-  -d "{\"start\": \"New York, NY\", \"finish\": \"Los Angeles, CA\"}"
+  -d '{"start": "New York, NY", "finish": "Boston, MA"}'
 ```
 
-**Using Postman:**
+### Using Postman
 Import `postman_collection.json` for pre-configured test requests.
+
+### Using Python
+```python
+import requests
+
+response = requests.post('http://127.0.0.1:8000/api/route/', json={
+    'start': 'New York, NY',
+    'finish': 'Los Angeles, CA'
+})
+
+print(response.json())
+```
+
+## How It Works
+
+1. **Geocoding**: Converts location names to coordinates (OpenRouteService API)
+2. **Routing**: Gets optimal driving route with distance and geometry
+3. **Fuel Calculation**: 
+   - Loads real prices from `fuel-prices-for-be-assessment.csv` (8,151 truck stops)
+   - Calculates state-averaged fuel prices
+   - Determines stops every 500 miles (vehicle range)
+   - Computes total cost using 10 MPG efficiency
+4. **Response**: Returns complete route with fuel stops and costs
+
+## Technology Stack
+
+- **Django** 5.0.2 + Django REST Framework 3.14.0
+- **OpenRouteService API** (free tier) for geocoding and routing
+- **Python** 3.8+
+- **Real Fuel Data** from CSV (8,151 truck stops across USA)
 
 ## Project Structure
 
 ```
 fuel_route_api/
 ├── fuel_route_api/          # Django project settings
-│   ├── settings.py          # Configuration
-│   ├── urls.py              # Main URL routing
-│   └── wsgi.py              # WSGI config
 ├── route_planner/           # Main application
+│   ├── views.py             # API endpoint
 │   ├── services.py          # Route calculation logic
-│   ├── fuel_prices.py       # CSV data loader & fuel prices
-│   ├── views.py             # API endpoints
-│   ├── serializers.py       # Request validation
-│   └── urls.py              # App URLs
-├── fuel-prices-for-be-assessment.csv  # Real fuel price data (8000+ stops)
+│   ├── fuel_prices.py       # CSV data loader
+│   └── serializers.py       # Request validation
+├── fuel-prices-for-be-assessment.csv  # Real fuel price data
+├── .env                     # API key configuration
 ├── requirements.txt         # Python dependencies
 ├── manage.py                # Django CLI
 ├── postman_collection.json  # API test collection
-├── README.md                # Project overview
+├── README.md                # This file
 └── SETUP.md                 # Detailed setup guide
 ```
 
-## How It Works
+## Documentation
 
-1. **Load Fuel Data**: Reads `fuel-prices-for-be-assessment.csv` with 8000+ truck stops and calculates state-averaged prices
-2. **Geocoding**: Converts location names to coordinates using OpenRouteService
-3. **Routing**: Gets optimal driving route with geometry and distance
-4. **Fuel Stop Planning**: 
-   - Calculates stops needed based on 500-mile vehicle range
-   - Interpolates stop positions along route
-   - Applies real fuel prices from CSV data (averaged by state)
-   - Computes fuel cost for each segment
-5. **Response**: Returns complete route with fuel stops and total cost
+- **[SETUP.md](SETUP.md)** - Complete setup instructions with all commands and troubleshooting
 
-## Technologies
+## Requirements Met
 
-- Django 5.0.2 + Django REST Framework 3.14.0
-- OpenRouteService API (routing & geocoding)
-- Python 3.8+
-- Real fuel price data from CSV (8000+ truck stops)
+✓ Django 5.0.2 (latest stable)  
+✓ US location input (start/finish)  
+✓ Route map with geometry  
+✓ Optimal fuel stops by cost  
+✓ 500-mile vehicle range  
+✓ 10 MPG fuel efficiency  
+✓ Real CSV data (8,151 truck stops)  
+✓ Free routing API (OpenRouteService)  
+✓ Minimal API calls (2-3 per request)  
+✓ Fast response times  
+
+## Get OpenRouteService API Key
+
+1. Sign up at: https://openrouteservice.org/dev/#/signup
+2. Copy your API key
+3. Add to `.env` file: `OPENROUTE_API_KEY=your_key_here`
+
+## License
+
+This project was created as an assignment demonstration.

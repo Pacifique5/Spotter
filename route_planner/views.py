@@ -46,7 +46,10 @@ class RouteView(APIView):
                 status=status.HTTP_503_SERVICE_UNAVAILABLE
             )
         except Exception as e:
+            import traceback
+            error_trace = traceback.format_exc()
+            print(f"ERROR: {error_trace}")
             return Response(
-                {'error': 'Internal server error', 'details': str(e)},
+                {'error': 'Internal server error', 'details': str(e), 'trace': error_trace},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
